@@ -9,9 +9,17 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
+    "@monaco-editor/react": "^4.7.0",
+    "lucide-react": "^0.577.0",
+    "monaco-editor": "^0.55.1",
     "next": "16.1.6",
+    "node-latex-compiler": "^1.0.5",
+    "openai": "^6.26.0",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "react-pdf": "^10.4.1",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

@@ -1,65 +1,201 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useRef, useCallback, useEffect } from "react";
+import dynamic from "next/dynamic";
+import { FileNavigator } from "@/components/FileNavigator";
+import { Toolbar } from "@/components/Toolbar";
+
+// Dynamically import components that use browser APIs
+const Editor = dynamic(
+  () => import("@/components/Editor").then((m) => ({ default: m.Editor })),
+  { ssr: false }
+);
+
+const PDFPreview = dynamic(
+  () =>
+    import("@/components/PDFPreview").then((m) => ({ default: m.PDFPreview })),
+  { ssr: false }
+);
+
+const AIPanel = dynamic(
+  () => import("@/components/AIPanel").then((m) => ({ default: m.AIPanel })),
+  { ssr: false }
+);
+
+const MIN_PANEL_WIDTH = 120;
+const MIN_EDITOR_WIDTH = 200;
 
 export default function Home() {
+  const [showPdf, setShowPdf] = useState(true);
+  const [navWidth, setNavWidth] = useState(200);
+  const [aiWidth, setAiWidth] = useState(320);
+  const [editorRatio, setEditorRatio] = useState(0.5); // editor vs pdf when both visible
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isDraggingNav = useRef(false);
+  const isDraggingAi = useRef(false);
+  const isDraggingCenter = useRef(false);
+
+  // Nav resizer
+  const startDragNav = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingNav.current = true;
+
+    function onMove(ev: MouseEvent) {
+      if (!isDraggingNav.current) return;
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const newWidth = ev.clientX - rect.left;
+      setNavWidth(Math.max(MIN_PANEL_WIDTH, Math.min(newWidth, 400)));
+    }
+
+    function onUp() {
+      isDraggingNav.current = false;
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    }
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, []);
+
+  // AI panel resizer
+  const startDragAi = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingAi.current = true;
+
+    function onMove(ev: MouseEvent) {
+      if (!isDraggingAi.current) return;
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const fromRight = rect.right - ev.clientX;
+      setAiWidth(Math.max(MIN_PANEL_WIDTH, Math.min(fromRight, 600)));
+    }
+
+    function onUp() {
+      isDraggingAi.current = false;
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    }
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, []);
+
+  // Center (editor vs pdf) resizer
+  const startDragCenter = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingCenter.current = true;
+
+    function onMove(ev: MouseEvent) {
+      if (!isDraggingCenter.current) return;
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      // center area starts after nav and ends before ai
+      const centerStart = rect.left + navWidth + 4;
+      const centerEnd = rect.right - aiWidth - 4;
+      const centerWidth = centerEnd - centerStart;
+      if (centerWidth <= 0) return;
+      const ratio = (ev.clientX - centerStart) / centerWidth;
+      setEditorRatio(Math.max(0.15, Math.min(ratio, 0.85)));
+    }
+
+    function onUp() {
+      isDraggingCenter.current = false;
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    }
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, [navWidth, aiWidth]);
+
+  // Prevent text selection while dragging
+  useEffect(() => {
+    function preventSelect(e: Event) {
+      if (
+        isDraggingNav.current ||
+        isDraggingAi.current ||
+        isDraggingCenter.current
+      ) {
+        e.preventDefault();
+      }
+    }
+    document.addEventListener("selectstart", preventSelect);
+    return () => document.removeEventListener("selectstart", preventSelect);
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="flex flex-col h-screen w-screen overflow-hidden">
+      {/* Toolbar */}
+      <Toolbar showPdf={showPdf} onTogglePdf={() => setShowPdf((v) => !v)} />
+
+      {/* Main content */}
+      <div ref={containerRef} className="flex flex-1 min-h-0 overflow-hidden">
+        {/* File Navigator */}
+        <div
+          style={{ width: navWidth, minWidth: navWidth }}
+          className="flex-shrink-0 border-r border-[#1e1e1e] overflow-hidden"
+        >
+          <FileNavigator />
+        </div>
+
+        {/* Nav resize handle */}
+        <div
+          className="resize-handle resize-handle-vertical"
+          onMouseDown={startDragNav}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        {/* Editor + PDF area */}
+        <div className="flex flex-1 min-w-0 overflow-hidden">
+          {/* Monaco editor */}
+          <div
+            style={{
+              flex: showPdf ? `0 0 ${editorRatio * 100}%` : "1 1 0",
+              minWidth: MIN_EDITOR_WIDTH,
+              overflow: "hidden",
+            }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            <Editor />
+          </div>
+
+          {/* Center resize handle (only visible when pdf shown) */}
+          {showPdf && (
+            <div
+              className="resize-handle resize-handle-vertical"
+              onMouseDown={startDragCenter}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          )}
+
+          {/* PDF Preview */}
+          {showPdf && (
+            <div
+              style={{
+                flex: `0 0 ${(1 - editorRatio) * 100}%`,
+                minWidth: MIN_EDITOR_WIDTH,
+                overflow: "hidden",
+              }}
+              className="border-l border-[#1e1e1e]"
+            >
+              <PDFPreview />
+            </div>
+          )}
         </div>
-      </main>
+
+        {/* AI panel resize handle */}
+        <div
+          className="resize-handle resize-handle-vertical"
+          onMouseDown={startDragAi}
+        />
+
+        {/* AI Panel */}
+        <div
+          style={{ width: aiWidth, minWidth: aiWidth }}
+          className="flex-shrink-0 border-l border-[#1e1e1e] overflow-hidden"
+        >
+          <AIPanel />
+        </div>
+      </div>
     </div>
   );
 }

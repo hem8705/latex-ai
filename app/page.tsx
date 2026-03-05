@@ -126,7 +126,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden">
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-black">
       {/* Toolbar */}
       <Toolbar showPdf={showPdf} onTogglePdf={() => setShowPdf((v) => !v)} />
 
@@ -135,7 +135,7 @@ export default function Home() {
         {/* File Navigator */}
         <div
           style={{ width: navWidth, minWidth: navWidth }}
-          className="flex-shrink-0 border-r border-[#1e1e1e] overflow-hidden"
+          className="flex-shrink-0 border-r border-[#1a1a1a] overflow-hidden"
         >
           <FileNavigator />
         </div>
@@ -175,7 +175,7 @@ export default function Home() {
                 minWidth: MIN_EDITOR_WIDTH,
                 overflow: "hidden",
               }}
-              className="border-l border-[#1e1e1e]"
+              className="border-l border-[#1a1a1a]"
             >
               <PDFPreview />
             </div>
@@ -191,7 +191,7 @@ export default function Home() {
         {/* AI Panel */}
         <div
           style={{ width: aiWidth, minWidth: aiWidth }}
-          className="flex-shrink-0 border-l border-[#1e1e1e] overflow-hidden"
+          className="flex-shrink-0 border-l border-[#1a1a1a] overflow-hidden"
         >
           <AIPanel />
         </div>

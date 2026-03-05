@@ -57,31 +57,31 @@ function MarkdownMessage({ content }: { content: string }) {
             {part.content}
           </p>
         ) : (
-          <div key={i} className="relative group rounded overflow-hidden border border-[#3d3d3d]">
-            <div className="flex items-center justify-between bg-[#1e1e1e] px-3 py-1 border-b border-[#3d3d3d]">
-              <span className="text-xs text-[#858585]">{part.lang || "code"}</span>
+          <div key={i} className="relative group rounded-lg overflow-hidden border border-[#2a2a2a]">
+            <div className="flex items-center justify-between bg-[#111] px-3 py-1.5 border-b border-[#2a2a2a]">
+              <span className="text-xs text-[#666]">{part.lang || "code"}</span>
               <div className="flex items-center gap-1">
                 {(part.lang === "latex" || part.lang === "tex") && (
                   <button
                     onClick={() => applyToEditor(part.content)}
-                    className="text-xs text-[#007acc] hover:text-blue-300 px-2 py-0.5 rounded hover:bg-[#007acc20] transition-colors"
+                    className="text-xs text-[#fbbf24] hover:text-[#f59e0b] px-2 py-0.5 rounded-lg hover:bg-[#fbbf24]/10 transition-colors"
                   >
                     Apply
                   </button>
                 )}
                 <button
                   onClick={() => copyCode(part.content, i)}
-                  className="p-1 rounded hover:bg-[#3d3d3d] text-[#858585] hover:text-[#cccccc] transition-colors"
+                  className="p-1 rounded-lg hover:bg-[#2a2a2a] text-[#666] hover:text-white transition-colors"
                 >
                   {copiedBlock === i ? (
-                    <ClipboardCheck size={12} className="text-green-400" />
+                    <ClipboardCheck size={12} className="text-[#fbbf24]" />
                   ) : (
                     <Clipboard size={12} />
                   )}
                 </button>
               </div>
             </div>
-            <pre className="text-xs text-[#ce9178] font-mono p-3 overflow-x-auto bg-[#1a1a1a] leading-relaxed">
+            <pre className="text-xs text-[#999] font-mono p-3 overflow-x-auto bg-[#0a0a0a] leading-relaxed">
               {part.content.trim()}
             </pre>
           </div>
@@ -245,12 +245,12 @@ export function AIPanel() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#1e1e1e]">
+    <div className="flex flex-col h-full bg-[#0a0a0a]">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[#2d2d2d] bg-[#252526] shrink-0">
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-[#1a1a1a] bg-[#0a0a0a] shrink-0">
         <div className="flex items-center gap-2">
-          <Bot size={14} className="text-[#007acc]" />
-          <span className="text-xs font-semibold text-[#cccccc]">
+          <Bot size={14} className="text-[#fbbf24]" />
+          <span className="text-xs font-semibold text-white">
             AI Assistant
           </span>
         </div>
@@ -258,7 +258,7 @@ export function AIPanel() {
           {compileErrors.length > 0 && (
             <button
               onClick={handleFixErrors}
-              className="text-xs text-red-400 hover:text-red-300 px-2 py-0.5 rounded hover:bg-red-900/20 transition-colors"
+              className="text-xs text-[#fbbf24] hover:text-[#f59e0b] px-2 py-1 rounded-lg hover:bg-[#fbbf24]/10 transition-colors"
               title="Ask AI to fix compile errors"
             >
               Fix errors
@@ -266,7 +266,7 @@ export function AIPanel() {
           )}
           <button
             onClick={clearAiMessages}
-            className="p-1 rounded hover:bg-[#2d2d2d] text-[#858585] hover:text-[#cccccc] transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#2a2a2a] text-[#666] hover:text-white transition-colors"
             title="Clear chat"
           >
             <Trash2 size={13} />
@@ -275,20 +275,20 @@ export function AIPanel() {
       </div>
 
       {/* Model selector */}
-      <div className="px-3 py-2 border-b border-[#2d2d2d] shrink-0">
+      <div className="px-3 py-2 border-b border-[#1a1a1a] shrink-0">
         <div className="relative">
           <button
             onClick={() => setShowModelSelect(!showModelSelect)}
-            className="w-full flex items-center justify-between px-2 py-1.5 bg-[#2d2d2d] hover:bg-[#3d3d3d] rounded text-xs text-[#cccccc] transition-colors"
+            className="w-full flex items-center justify-between px-3 py-2 bg-[#1a1a1a] hover:bg-[#2a2a2a] rounded-lg text-xs text-white transition-colors"
           >
             <span>
               {MODEL_OPTIONS.find((m) => m.value === selectedModel)?.label}
             </span>
-            <ChevronDown size={12} />
+            <ChevronDown size={12} className="text-[#666]" />
           </button>
 
           {showModelSelect && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-[#252526] border border-[#454545] rounded shadow-lg z-10">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-[#111] border border-[#2a2a2a] rounded-lg shadow-lg z-10 overflow-hidden">
               {MODEL_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
@@ -296,10 +296,10 @@ export function AIPanel() {
                     setSelectedModel(opt.value);
                     setShowModelSelect(false);
                   }}
-                  className={`w-full text-left px-3 py-2 text-xs transition-colors ${
+                  className={`w-full text-left px-3 py-2.5 text-xs transition-colors ${
                     selectedModel === opt.value
-                      ? "text-[#007acc] bg-[#094771]"
-                      : "text-[#cccccc] hover:bg-[#2a2d2e]"
+                      ? "text-[#fbbf24] bg-[#fbbf24]/10"
+                      : "text-white hover:bg-[#1a1a1a]"
                   }`}
                 >
                   {opt.label}
@@ -311,7 +311,7 @@ export function AIPanel() {
 
         {/* API key status */}
         {!activeApiKey && (
-          <p className="text-xs text-yellow-500/80 mt-1.5">
+          <p className="text-xs text-[#fbbf24]/80 mt-1.5">
             ⚠ No API key — add one in Settings
           </p>
         )}
@@ -321,9 +321,9 @@ export function AIPanel() {
       <div className="flex-1 overflow-y-auto p-3 space-y-4 min-h-0">
         {aiMessages.length === 0 ? (
           <div className="text-center py-8 space-y-3">
-            <Bot size={28} className="mx-auto text-[#007acc] opacity-50" />
-            <div className="text-xs text-[#858585] space-y-1">
-              <p>How can I help with your LaTeX document?</p>
+            <Bot size={28} className="mx-auto text-[#fbbf24] opacity-50" />
+            <div className="text-xs text-[#666] space-y-1">
+              <p className="text-[#999]">How can I help with your LaTeX document?</p>
               <p className="opacity-60">Try asking me to:</p>
               <div className="space-y-1 mt-2">
                 {[
@@ -335,7 +335,7 @@ export function AIPanel() {
                   <button
                     key={s}
                     onClick={() => setInput(s)}
-                    className="block w-full text-left px-2 py-1 rounded text-xs text-[#858585] hover:text-[#cccccc] hover:bg-[#2d2d2d] transition-colors"
+                    className="block w-full text-left px-2 py-1.5 rounded-lg text-xs text-[#666] hover:text-white hover:bg-[#1a1a1a] transition-colors"
                   >
                     → {s}
                   </button>
@@ -348,19 +348,19 @@ export function AIPanel() {
             <div key={msg.id} className="space-y-1">
               <div className="flex items-center gap-1.5">
                 {msg.role === "user" ? (
-                  <User size={11} className="text-[#858585]" />
+                  <User size={11} className="text-[#666]" />
                 ) : (
-                  <Bot size={11} className="text-[#007acc]" />
+                  <Bot size={11} className="text-[#fbbf24]" />
                 )}
-                <span className="text-[10px] text-[#858585] capitalize">
+                <span className="text-[10px] text-[#666] capitalize">
                   {msg.role === "user" ? "You" : "Assistant"}
                 </span>
               </div>
               <div
-                className={`rounded px-3 py-2 text-[#cccccc] ${
+                className={`rounded-lg px-3 py-2 text-white ${
                   msg.role === "user"
-                    ? "bg-[#094771] ml-2"
-                    : "bg-[#2d2d2d]"
+                    ? "bg-[#fbbf24]/20 ml-2"
+                    : "bg-[#1a1a1a]"
                 }`}
               >
                 {msg.role === "assistant" ? (
@@ -372,9 +372,9 @@ export function AIPanel() {
                 )}
                 {msg.role === "assistant" && isAiLoading && msg.content === "" && (
                   <div className="flex gap-1 py-1">
-                    <span className="w-1.5 h-1.5 bg-[#007acc] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <span className="w-1.5 h-1.5 bg-[#007acc] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <span className="w-1.5 h-1.5 bg-[#007acc] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                    <span className="w-1.5 h-1.5 bg-[#fbbf24] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <span className="w-1.5 h-1.5 bg-[#fbbf24] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <span className="w-1.5 h-1.5 bg-[#fbbf24] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
                   </div>
                 )}
               </div>
@@ -385,36 +385,36 @@ export function AIPanel() {
       </div>
 
       {/* Context toggle */}
-      <div className="px-3 py-1.5 border-t border-[#2d2d2d] flex items-center gap-2 shrink-0">
+      <div className="px-3 py-2 border-t border-[#1a1a1a] flex items-center gap-2 shrink-0">
         <label className="flex items-center gap-1.5 cursor-pointer">
           <input
             type="checkbox"
             checked={includeContext}
             onChange={(e) => setIncludeContext(e.target.checked)}
-            className="w-3 h-3 accent-[#007acc]"
+            className="w-3 h-3 accent-[#fbbf24]"
           />
-          <span className="text-xs text-[#858585]">Include current file</span>
+          <span className="text-xs text-[#666]">Include current file</span>
         </label>
       </div>
 
       {/* Input area */}
       <div className="px-3 pb-3 shrink-0">
-        <div className="flex gap-2 bg-[#2d2d2d] rounded border border-[#3d3d3d] focus-within:border-[#007acc] transition-colors">
+        <div className="flex gap-2 bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] focus-within:border-[#fbbf24] transition-colors">
           <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about LaTeX… (Enter to send, Shift+Enter for newline)"
+            placeholder="Ask about LaTeX… (Enter to send)"
             rows={2}
-            className="flex-1 bg-transparent text-[#cccccc] text-xs px-3 py-2 resize-none outline-none placeholder-[#555] leading-relaxed"
+            className="flex-1 bg-transparent text-white text-xs px-3 py-2.5 resize-none outline-none placeholder-[#444] leading-relaxed"
           />
           <button
             onClick={sendMessage}
             disabled={!input.trim() || isAiLoading}
-            className="px-2 self-end mb-1.5 mr-1 p-1.5 bg-[#007acc] hover:bg-[#1a8ad4] disabled:opacity-40 disabled:cursor-not-allowed rounded transition-colors"
+            className="px-2 self-end mb-2 mr-1.5 p-2 bg-[#fbbf24] hover:bg-[#f59e0b] disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors"
           >
-            <Send size={12} className="text-white" />
+            <Send size={12} className="text-black" />
           </button>
         </div>
       </div>

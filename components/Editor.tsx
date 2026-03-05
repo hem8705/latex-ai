@@ -89,33 +89,31 @@ export function Editor() {
   const currentLanguage = activeFile ? getLanguage(activeFile) : "plaintext";
 
   return (
-    <div className="flex flex-col h-full bg-[#1e1e1e]">
+    <div className="flex flex-col h-full bg-[#0a0a0a]">
       {/* Tabs */}
-      <div className="flex items-center overflow-x-auto bg-[#252526] border-b border-[#1e1e1e] min-h-[35px] scrollbar-hide">
+      <div className="flex items-center overflow-x-auto bg-[#0a0a0a] border-b border-[#1a1a1a] min-h-[38px] scrollbar-hide">
         {openFiles.map((name) => (
           <div
             key={name}
-            className={`group flex items-center gap-1.5 px-3 py-2 cursor-pointer border-r border-[#1e1e1e] text-xs whitespace-nowrap transition-colors min-w-0 ${
+            className={`group flex items-center gap-1.5 px-3 py-2 cursor-pointer text-xs whitespace-nowrap transition-colors min-w-0 rounded-t-lg mx-0.5 ${
               activeFile === name
-                ? "bg-[#1e1e1e] text-[#cccccc] border-t-2 border-t-[#007acc]"
-                : "bg-[#2d2d2d] text-[#858585] hover:bg-[#2a2d2e] hover:text-[#cccccc]"
+                ? "bg-[#1a1a1a] text-white"
+                : "bg-transparent text-[#666] hover:bg-[#1a1a1a]/50 hover:text-white"
             }`}
             onClick={() => openFile(name)}
           >
             <FileText
               size={12}
               className={
-                name.endsWith(".bib")
-                  ? "text-green-400"
-                  : name.endsWith(".sty") || name.endsWith(".cls")
-                  ? "text-yellow-400"
-                  : "text-blue-400"
+                name.endsWith(".tex")
+                  ? "text-[#fbbf24]"
+                  : "text-[#666]"
               }
             />
             <span className="max-w-[140px] truncate">
               {name}
               {name === mainFile && (
-                <span className="ml-1 text-[10px] text-yellow-500">★</span>
+                <span className="ml-1 text-[10px] text-[#fbbf24]">★</span>
               )}
             </span>
             <button
@@ -123,7 +121,7 @@ export function Editor() {
                 e.stopPropagation();
                 closeFile(name);
               }}
-              className="opacity-0 group-hover:opacity-100 hover:bg-[#ffffff20] rounded p-0.5 transition-all -mr-1 shrink-0"
+              className="opacity-0 group-hover:opacity-100 hover:bg-[#333] rounded p-0.5 transition-all -mr-1 shrink-0"
             >
               <X size={10} />
             </button>
@@ -171,10 +169,10 @@ export function Editor() {
             }}
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-[#858585] text-sm">
+          <div className="flex items-center justify-center h-full text-[#666] text-sm">
             <div className="text-center space-y-2">
               <FileText size={32} className="mx-auto opacity-30" />
-              <p>No file open</p>
+              <p className="text-[#888]">No file open</p>
               <p className="text-xs">Select a file from the navigator</p>
             </div>
           </div>
@@ -182,11 +180,11 @@ export function Editor() {
       </div>
 
       {/* Status bar */}
-      <div className="flex items-center justify-between px-3 py-0.5 bg-[#007acc] text-white text-xs">
+      <div className="flex items-center justify-between px-3 py-1 bg-[#fbbf24] text-black text-xs font-medium">
         <div className="flex items-center gap-3">
           <span>{activeFile ?? "No file"}</span>
           {activeFile === mainFile && (
-            <span className="text-yellow-200 text-[10px]">★ main</span>
+            <span className="text-black/60 text-[10px]">★ main</span>
           )}
         </div>
         <div className="flex items-center gap-3">

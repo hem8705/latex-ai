@@ -10,6 +10,7 @@ html,
 body {
   height: 100%;
   overflow: hidden;
+  background: #000;
 }
 
 /* Custom scrollbar for dark theme */
@@ -23,12 +24,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #424242;
+  background: #333;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: #444;
 }
 
 /* Hide scrollbar but keep scrolling */
@@ -44,7 +45,7 @@ body {
 /* Resizable panel handles */
 .resize-handle {
   flex-shrink: 0;
-  background: #1e1e1e;
+  background: #1a1a1a;
   transition: background 0.15s;
   position: relative;
   z-index: 10;
@@ -52,7 +53,7 @@ body {
 
 .resize-handle:hover,
 .resize-handle.dragging {
-  background: #007acc;
+  background: #fbbf24;
 }
 
 .resize-handle-vertical {
@@ -74,9 +75,10 @@ body {
 .react-pdf__Page canvas {
   max-width: 100%;
   height: auto !important;
+  border-radius: 8px;
 }
 
 /* Monaco editor container */
 .monaco-editor .margin {
-  background-color: #1e1e1e !important;
+  background-color: #0a0a0a !important;
 }

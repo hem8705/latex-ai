@@ -67,24 +67,24 @@ export function PDFPreview() {
     : null;
 
   return (
-    <div className="flex flex-col h-full bg-[#252526]">
+    <div className="flex flex-col h-full bg-[#111]">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[#1e1e1e] bg-[#2d2d2d] shrink-0">
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-[#1a1a1a] bg-[#0a0a0a] shrink-0">
         <div className="flex items-center gap-1">
           <button
             onClick={prevPage}
             disabled={pageNumber <= 1}
-            className="p-1 rounded hover:bg-[#3d3d3d] text-[#858585] hover:text-[#cccccc] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#2a2a2a] text-[#666] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             <ChevronLeft size={14} />
           </button>
-          <span className="text-xs text-[#858585] min-w-[80px] text-center">
+          <span className="text-xs text-[#666] min-w-[80px] text-center">
             {compiledPdf ? `${pageNumber} / ${numPages}` : "— / —"}
           </span>
           <button
             onClick={nextPage}
             disabled={pageNumber >= numPages}
-            className="p-1 rounded hover:bg-[#3d3d3d] text-[#858585] hover:text-[#cccccc] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#2a2a2a] text-[#666] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             <ChevronRight size={14} />
           </button>
@@ -93,16 +93,16 @@ export function PDFPreview() {
         <div className="flex items-center gap-1">
           <button
             onClick={zoomOut}
-            className="p-1 rounded hover:bg-[#3d3d3d] text-[#858585] hover:text-[#cccccc] transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#2a2a2a] text-[#666] hover:text-white transition-colors"
           >
             <ZoomOut size={14} />
           </button>
-          <span className="text-xs text-[#858585] w-12 text-center">
+          <span className="text-xs text-[#666] w-12 text-center">
             {Math.round(scale * 100)}%
           </span>
           <button
             onClick={zoomIn}
-            className="p-1 rounded hover:bg-[#3d3d3d] text-[#858585] hover:text-[#cccccc] transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#2a2a2a] text-[#666] hover:text-white transition-colors"
           >
             <ZoomIn size={14} />
           </button>
@@ -112,10 +112,10 @@ export function PDFPreview() {
           {compileLogs && (
             <button
               onClick={() => setShowLogs(!showLogs)}
-              className={`text-xs px-2 py-0.5 rounded transition-colors ${
+              className={`text-xs px-2 py-1 rounded-lg transition-colors ${
                 compileErrors.length > 0
-                  ? "text-red-400 hover:bg-red-900/20"
-                  : "text-green-400 hover:bg-green-900/20"
+                  ? "text-[#888] hover:bg-[#2a2a2a]"
+                  : "text-[#fbbf24] hover:bg-[#fbbf24]/10"
               }`}
             >
               {compileErrors.length > 0
@@ -126,7 +126,7 @@ export function PDFPreview() {
           <button
             onClick={downloadPdf}
             disabled={!compiledPdf}
-            className="p-1 rounded hover:bg-[#3d3d3d] text-[#858585] hover:text-[#cccccc] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#2a2a2a] text-[#666] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             title="Download PDF"
           >
             <Download size={14} />
@@ -136,14 +136,14 @@ export function PDFPreview() {
 
       {/* Compile logs panel */}
       {showLogs && compileLogs && (
-        <div className="shrink-0 max-h-40 overflow-y-auto bg-[#1e1e1e] border-b border-[#2d2d2d] p-3">
+        <div className="shrink-0 max-h-40 overflow-y-auto bg-[#0a0a0a] border-b border-[#1a1a1a] p-3">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-[#858585] uppercase tracking-wider">
+            <span className="text-xs font-semibold text-[#666] uppercase tracking-wider">
               Compile Output
             </span>
             <button
               onClick={() => setShowLogs(false)}
-              className="text-xs text-[#858585] hover:text-[#cccccc]"
+              className="text-xs text-[#666] hover:text-white"
             >
               ✕
             </button>
@@ -151,38 +151,38 @@ export function PDFPreview() {
           {compileErrors.length > 0 && (
             <div className="mb-2 space-y-1">
               {compileErrors.map((err, i) => (
-                <div key={i} className="text-xs text-red-400 font-mono">
+                <div key={i} className="text-xs text-[#888] font-mono">
                   {err}
                 </div>
               ))}
             </div>
           )}
-          <pre className="text-xs text-[#858585] font-mono whitespace-pre-wrap leading-relaxed">
+          <pre className="text-xs text-[#666] font-mono whitespace-pre-wrap leading-relaxed">
             {compileLogs}
           </pre>
         </div>
       )}
 
       {/* PDF Content */}
-      <div className="flex-1 overflow-auto flex items-start justify-center p-4 min-h-0">
+      <div className="flex-1 overflow-auto flex items-start justify-center p-4 min-h-0 bg-[#111]">
         {isCompiling ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-[#858585]">
-            <Loader2 size={28} className="animate-spin" />
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-[#666]">
+            <Loader2 size={28} className="animate-spin text-[#fbbf24]" />
             <span className="text-sm">Compiling…</span>
           </div>
         ) : compiledPdf ? (
-          <div className="shadow-2xl">
+          <div className="shadow-2xl rounded-lg overflow-hidden">
             <Document
               file={pdfData}
               onLoadSuccess={onDocumentLoadSuccess}
               loading={
-                <div className="flex items-center justify-center p-8 text-[#858585]">
-                  <Loader2 size={20} className="animate-spin mr-2" />
+                <div className="flex items-center justify-center p-8 text-[#666]">
+                  <Loader2 size={20} className="animate-spin mr-2 text-[#fbbf24]" />
                   Loading PDF…
                 </div>
               }
               error={
-                <div className="flex flex-col items-center justify-center p-8 text-red-400 gap-2">
+                <div className="flex flex-col items-center justify-center p-8 text-[#666] gap-2">
                   <FileX size={24} />
                   <span className="text-sm">Failed to load PDF</span>
                 </div>
@@ -198,22 +198,22 @@ export function PDFPreview() {
             </Document>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-[#858585]">
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-[#666]">
             <FileX size={32} className="opacity-30" />
             <div className="text-center">
-              <p className="text-sm">No PDF yet</p>
+              <p className="text-sm text-[#888]">No PDF yet</p>
               <p className="text-xs mt-1 opacity-60">
                 Click Compile or press ⌘↵
               </p>
             </div>
             {compileErrors.length > 0 && (
-              <div className="mt-2 max-w-sm w-full bg-red-950/30 border border-red-800/50 rounded p-3">
-                <p className="text-xs font-semibold text-red-400 mb-2">
+              <div className="mt-2 max-w-sm w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3">
+                <p className="text-xs font-semibold text-[#888] mb-2">
                   Compile errors:
                 </p>
                 <div className="space-y-1">
                   {compileErrors.slice(0, 5).map((err, i) => (
-                    <p key={i} className="text-xs text-red-300 font-mono">
+                    <p key={i} className="text-xs text-[#666] font-mono">
                       {err}
                     </p>
                   ))}

@@ -11,19 +11,10 @@ import {
   Star,
 } from "lucide-react";
 
-const FILE_ICON_MAP: Record<string, string> = {
-  ".tex": "text-blue-400",
-  ".bib": "text-green-400",
-  ".sty": "text-yellow-400",
-  ".cls": "text-orange-400",
-  ".png": "text-purple-400",
-  ".jpg": "text-purple-400",
-  ".pdf": "text-red-400",
-};
-
 function getFileColor(name: string): string {
   const ext = name.includes(".") ? "." + name.split(".").pop() : "";
-  return FILE_ICON_MAP[ext] ?? "text-gray-400";
+  if (ext === ".tex") return "text-[#fbbf24]";
+  return "text-[#666]";
 }
 
 export function FileNavigator() {
@@ -102,15 +93,15 @@ export function FileNavigator() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#1e1e1e] select-none">
+    <div className="flex flex-col h-full bg-[#0a0a0a] select-none">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[#2d2d2d]">
-        <span className="text-xs font-semibold text-[#cccccc] uppercase tracking-wider">
+      <div className="flex items-center justify-between px-3 py-2.5 border-b border-[#1a1a1a]">
+        <span className="text-xs font-semibold text-white uppercase tracking-wider">
           Files
         </span>
         <button
           onClick={() => setIsAdding(true)}
-          className="p-1 rounded hover:bg-[#2d2d2d] text-[#858585] hover:text-[#cccccc] transition-colors"
+          className="p-1 rounded-lg hover:bg-[#2a2a2a] text-[#666] hover:text-white transition-colors"
           title="New file"
         >
           <FilePlus size={14} />
@@ -121,7 +112,7 @@ export function FileNavigator() {
       <div className="flex-1 overflow-y-auto py-1">
         {/* Project folder */}
         <button
-          className="w-full flex items-center gap-1 px-2 py-1 text-xs text-[#858585] hover:text-[#cccccc] hover:bg-[#2a2d2e] transition-colors"
+          className="w-full flex items-center gap-1 px-2 py-1.5 text-xs text-[#666] hover:text-white hover:bg-[#1a1a1a] transition-colors"
           onClick={() => setIsExpanded(!isExpanded)}
         >
           {isExpanded ? (
@@ -137,10 +128,10 @@ export function FileNavigator() {
             {fileNames.map((name) => (
               <div
                 key={name}
-                className={`group flex items-center gap-2 px-2 py-1 rounded text-xs cursor-pointer transition-colors ${
+                className={`group flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs cursor-pointer transition-colors ${
                   activeFile === name
-                    ? "bg-[#37373d] text-[#cccccc]"
-                    : "text-[#858585] hover:bg-[#2a2d2e] hover:text-[#cccccc]"
+                    ? "bg-[#1a1a1a] text-white"
+                    : "text-[#888] hover:bg-[#1a1a1a] hover:text-white"
                 }`}
                 onClick={() => openFile(name)}
                 onMouseEnter={() => setHoveredFile(name)}
@@ -154,7 +145,7 @@ export function FileNavigator() {
                   <span title="Main file">
                     <Star
                       size={10}
-                      className="text-yellow-500 fill-yellow-500 shrink-0"
+                      className="text-[#fbbf24] fill-[#fbbf24] shrink-0"
                     />
                   </span>
                 )}
@@ -165,7 +156,7 @@ export function FileNavigator() {
                       e.stopPropagation();
                       deleteFile(name);
                     }}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[#ff000030] hover:text-red-400 transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[#333] hover:text-[#888] transition-all"
                     title="Delete file"
                   >
                     <Trash2 size={11} />
@@ -177,7 +168,7 @@ export function FileNavigator() {
             {/* New file input */}
             {isAdding && (
               <div className="flex items-center gap-2 px-2 py-1">
-                <FileText size={13} className="text-blue-400" />
+                <FileText size={13} className="text-[#fbbf24]" />
                 <input
                   ref={inputRef}
                   value={newFileName}
@@ -185,7 +176,7 @@ export function FileNavigator() {
                   onKeyDown={handleKeyDown}
                   onBlur={handleAddFile}
                   placeholder="filename.tex"
-                  className="flex-1 bg-[#3c3c3c] text-[#cccccc] text-xs px-1 py-0.5 rounded border border-[#007acc] outline-none min-w-0"
+                  className="flex-1 bg-[#1a1a1a] text-white text-xs px-2 py-1 rounded-lg border border-[#fbbf24] outline-none min-w-0"
                 />
               </div>
             )}
@@ -194,10 +185,10 @@ export function FileNavigator() {
       </div>
 
       {/* Add file button at bottom */}
-      <div className="border-t border-[#2d2d2d] p-2">
+      <div className="border-t border-[#1a1a1a] p-2">
         <button
           onClick={() => setIsAdding(true)}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs text-[#858585] hover:text-[#cccccc] hover:bg-[#2a2d2e] rounded transition-colors"
+          className="w-full flex items-center justify-center gap-1.5 py-2 text-xs text-[#666] hover:text-white hover:bg-[#1a1a1a] rounded-lg transition-colors"
         >
           <FilePlus size={13} />
           <span>New file</span>
@@ -209,21 +200,21 @@ export function FileNavigator() {
         <div
           ref={contextMenuRef}
           style={{ top: contextMenu.y, left: contextMenu.x }}
-          className="fixed z-50 bg-[#252526] border border-[#454545] rounded shadow-lg py-1 min-w-[160px]"
+          className="fixed z-50 bg-[#111] border border-[#2a2a2a] rounded-lg shadow-lg py-1 min-w-[160px]"
         >
           <button
-            className="w-full text-left px-3 py-1.5 text-xs text-[#cccccc] hover:bg-[#094771] transition-colors flex items-center gap-2"
+            className="w-full text-left px-3 py-2 text-xs text-white hover:bg-[#fbbf24]/20 transition-colors flex items-center gap-2"
             onClick={() => {
               setMainFile(contextMenu.file);
               setContextMenu(null);
             }}
           >
-            <Star size={11} />
+            <Star size={11} className="text-[#fbbf24]" />
             Set as main file
           </button>
-          <div className="border-t border-[#454545] my-1" />
+          <div className="border-t border-[#2a2a2a] my-1" />
           <button
-            className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:bg-[#ff000020] transition-colors flex items-center gap-2"
+            className="w-full text-left px-3 py-2 text-xs text-[#888] hover:bg-[#2a2a2a] transition-colors flex items-center gap-2"
             onClick={() => {
               deleteFile(contextMenu.file);
               setContextMenu(null);

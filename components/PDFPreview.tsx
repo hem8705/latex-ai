@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { useEditorStore } from "@/lib/store";
 import {
@@ -16,13 +16,14 @@ import {
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 export function PDFPreview() {
-  const { compiledPdf, isCompiling, compileErrors, compileLogs } =
+  const { compiledPdf, isCompiling, compileErrors, compileLogs, findSourceLine } =
     useEditorStore();
 
   const [numPages, setNumPages] = useState<number>(0);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.0);
   const [showLogs, setShowLogs] = useState(false);
+  const hoverDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const onDocumentLoadSuccess = useCallback(
     ({ numPages }: { numPages: number }) => {
@@ -61,6 +62,50 @@ export function PDFPreview() {
     a.click();
     URL.revokeObjectURL(url);
   }
+
+  function extractTextFromTarget(target: EventTarget | null): string {
+    if (!target || !(target instanceof HTMLElement)) return "";
+    // react-pdf text layer spans — walk up to find a text span
+    let el: HTMLElement | null = target;
+    while (el && !el.classList.contains("react-pdf__Page__textContent")) {
+      if (el.tagName === "SPAN" && el.textContent) {
+        return el.textContent;
+      }
+      el = el.parentElement;
+    }
+    return "";
+  }
+
+  const handlePdfMouseOver = useCallback(
+    (e: React.MouseEvent) => {
+      const text = extractTextFromTarget(e.target);
+      if (!text || text.trim().length < 3) return;
+      if (hoverDebounceRef.current) clearTimeout(hoverDebounceRef.current);
+      hoverDebounceRef.current = setTimeout(() => {
+        const loc = findSourceLine(text);
+        if (loc) {
+          window.dispatchEvent(
+            new CustomEvent("editor-highlight-line", { detail: loc })
+          );
+        }
+      }, 100);
+    },
+    [findSourceLine]
+  );
+
+  const handlePdfClick = useCallback(
+    (e: React.MouseEvent) => {
+      const text = extractTextFromTarget(e.target);
+      if (!text || text.trim().length < 3) return;
+      const loc = findSourceLine(text);
+      if (loc) {
+        window.dispatchEvent(
+          new CustomEvent("editor-jump-to-line", { detail: loc })
+        );
+      }
+    },
+    [findSourceLine]
+  );
 
   const pdfData = compiledPdf
     ? { data: atob(compiledPdf) }
@@ -171,7 +216,11 @@ export function PDFPreview() {
             <span className="text-sm">Compiling…</span>
           </div>
         ) : compiledPdf ? (
-          <div className="shadow-2xl rounded-lg overflow-hidden">
+          <div
+            className="shadow-2xl rounded-lg overflow-hidden"
+            onMouseOver={handlePdfMouseOver}
+            onClick={handlePdfClick}
+          >
             <Document
               file={pdfData}
               onLoadSuccess={onDocumentLoadSuccess}

@@ -82,3 +82,9 @@ body {
 .monaco-editor .margin {
   background-color: #0a0a0a !important;
 }
+
+/* SyncTeX-style source highlight triggered by PDF hover/click */
+.synctex-highlight {
+  background-color: rgba(251, 191, 36, 0.18) !important;
+  border-left: 2px solid #fbbf24;
+}

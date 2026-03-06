@@ -36,6 +36,11 @@ Edit this document and click \\textbf{Compile} to see the PDF.
 \\end{document}
 `;
 
+interface SourceLocation {
+  file: string;
+  line: number;
+}
+
 interface EditorStore {
   // Files
   files: FileMap;
@@ -48,6 +53,9 @@ interface EditorStore {
   compileLogs: string;
   compileErrors: string[];
   mainFile: string;
+
+  // Source highlighting (PDF → editor)
+  highlightedLine: SourceLocation | null;
 
   // AI
   aiMessages: Message[];
@@ -71,6 +79,10 @@ interface EditorStore {
   setCompileLogs: (logs: string) => void;
   setCompileErrors: (errors: string[]) => void;
 
+  // Actions — Source highlighting
+  setHighlightedLine: (loc: SourceLocation | null) => void;
+  findSourceLine: (text: string) => SourceLocation | null;
+
   // Actions — AI
   addAiMessage: (message: Message) => void;
   updateLastAiMessage: (content: string) => void;
@@ -92,6 +104,7 @@ export const useEditorStore = create<EditorStore>()(
       compileLogs: "",
       compileErrors: [],
       mainFile: "main.tex",
+      highlightedLine: null,
       aiMessages: [],
       selectedModel: "claude",
       apiKeys: {},
@@ -165,6 +178,46 @@ export const useEditorStore = create<EditorStore>()(
       setIsCompiling: (v) => set({ isCompiling: v }),
       setCompileLogs: (logs) => set({ compileLogs: logs }),
       setCompileErrors: (errors) => set({ compileErrors: errors }),
+
+      // Source highlighting actions
+      setHighlightedLine: (loc) => set({ highlightedLine: loc }),
+
+      findSourceLine: (text: string): SourceLocation | null => {
+        const { files, mainFile } = get();
+        const needle = text.trim().replace(/\s+/g, " ");
+        if (needle.length < 3) return null;
+
+        // Search main file first, then other .tex files
+        const orderedFiles = [
+          mainFile,
+          ...Object.keys(files).filter(
+            (f) => f !== mainFile && (f.endsWith(".tex") || f.endsWith(".sty") || f.endsWith(".cls"))
+          ),
+        ];
+
+        for (const filename of orderedFiles) {
+          const content = files[filename];
+          if (!content) continue;
+          const lines = content.split("\n");
+          for (let i = 0; i < lines.length; i++) {
+            const normalized = lines[i].replace(/\s+/g, " ").trim();
+            if (normalized.length >= 3 && normalized.includes(needle)) {
+              return { file: filename, line: i + 1 };
+            }
+          }
+          // Partial match: try matching any 5+ char contiguous substring
+          if (needle.length >= 8) {
+            const partial = needle.slice(0, Math.floor(needle.length * 0.6));
+            for (let i = 0; i < lines.length; i++) {
+              const normalized = lines[i].replace(/\s+/g, " ").trim();
+              if (normalized.length >= 3 && normalized.includes(partial)) {
+                return { file: filename, line: i + 1 };
+              }
+            }
+          }
+        }
+        return null;
+      },
 
       // AI actions
       addAiMessage: (message) =>

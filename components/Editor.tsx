@@ -7,6 +7,14 @@ import { registerLatexLanguage } from "@/lib/monaco-latex";
 import { X, FileText } from "lucide-react";
 import type * as Monaco from "monaco-editor";
 
+interface HighlightLineEvent extends CustomEvent {
+  detail: { file: string; line: number };
+}
+
+interface JumpToLineEvent extends CustomEvent {
+  detail: { file: string; line: number };
+}
+
 export function Editor() {
   const {
     files,
@@ -20,6 +28,8 @@ export function Editor() {
 
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof Monaco | null>(null);
+  const decorationIdsRef = useRef<string[]>([]);
+  const hoverClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleEditorMount: OnMount = useCallback(
     (editor, monaco) => {
@@ -47,6 +57,81 @@ export function Editor() {
     },
     []
   );
+
+  const applyHighlight = useCallback((line: number) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const model = editor.getModel();
+    if (!model) return;
+    const maxCol = model.getLineMaxColumn(line);
+    const range = {
+      startLineNumber: line,
+      startColumn: 1,
+      endLineNumber: line,
+      endColumn: maxCol,
+    };
+    decorationIdsRef.current = editor.deltaDecorations(decorationIdsRef.current, [
+      {
+        range,
+        options: {
+          isWholeLine: true,
+          className: "synctex-highlight",
+          overviewRuler: { color: "#fbbf24", position: 1 },
+        },
+      },
+    ]);
+    editor.revealLineInCenter(line, 0);
+  }, []);
+
+  const clearHighlight = useCallback(() => {
+    if (editorRef.current) {
+      decorationIdsRef.current = editorRef.current.deltaDecorations(
+        decorationIdsRef.current,
+        []
+      );
+    }
+  }, []);
+
+  // Listen for hover highlight events from PDFPreview
+  useEffect(() => {
+    const handleHighlight = (e: Event) => {
+      const { file, line } = (e as HighlightLineEvent).detail;
+      if (hoverClearTimerRef.current) clearTimeout(hoverClearTimerRef.current);
+      // Switch to target file if needed
+      if (file !== useEditorStore.getState().activeFile) {
+        useEditorStore.getState().openFile(file);
+        // Slight delay so Monaco updates its model before we decorate
+        setTimeout(() => applyHighlight(line), 80);
+      } else {
+        applyHighlight(line);
+      }
+      // Auto-clear after 2 seconds
+      hoverClearTimerRef.current = setTimeout(clearHighlight, 2000);
+    };
+
+    const handleJump = (e: Event) => {
+      const { file, line } = (e as JumpToLineEvent).detail;
+      if (hoverClearTimerRef.current) clearTimeout(hoverClearTimerRef.current);
+      if (file !== useEditorStore.getState().activeFile) {
+        useEditorStore.getState().openFile(file);
+        setTimeout(() => {
+          applyHighlight(line);
+          editorRef.current?.focus();
+        }, 80);
+      } else {
+        applyHighlight(line);
+        editorRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("editor-highlight-line", handleHighlight);
+    window.addEventListener("editor-jump-to-line", handleJump);
+    return () => {
+      window.removeEventListener("editor-highlight-line", handleHighlight);
+      window.removeEventListener("editor-jump-to-line", handleJump);
+      if (hoverClearTimerRef.current) clearTimeout(hoverClearTimerRef.current);
+    };
+  }, [applyHighlight, clearHighlight]);
 
   // When active file changes, update the model in Monaco
   useEffect(() => {

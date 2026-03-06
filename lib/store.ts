@@ -2,9 +2,9 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { FileMap, Message, ApiKeys, AIModel } from "@/types";
+import type { FileMap, Message, ApiKeys, AIModel, Project } from "@/types";
 
-const DEFAULT_MAIN_TEX = `\\documentclass[12pt]{article}
+export const DEFAULT_MAIN_TEX = `\\documentclass[12pt]{article}
 
 \\usepackage{amsmath}
 \\usepackage{amssymb}
@@ -36,23 +36,31 @@ Edit this document and click \\textbf{Compile} to see the PDF.
 \\end{document}
 `;
 
+function generateId(): string {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
 interface SourceLocation {
   file: string;
   line: number;
 }
 
 interface EditorStore {
-  // Files
+  // Projects
+  projects: Project[];
+  activeProjectId: string | null;
+
+  // Working copy (current open project's files)
   files: FileMap;
   activeFile: string | null;
   openFiles: string[];
+  mainFile: string;
 
   // Compilation
   compiledPdf: string | null;
   isCompiling: boolean;
   compileLogs: string;
   compileErrors: string[];
-  mainFile: string;
 
   // Source highlighting (PDF → editor)
   highlightedLine: SourceLocation | null;
@@ -62,6 +70,13 @@ interface EditorStore {
   selectedModel: AIModel;
   apiKeys: ApiKeys;
   isAiLoading: boolean;
+
+  // Actions — Projects
+  createProject: (name: string) => void;
+  openProject: (id: string) => void;
+  closeProject: () => void;
+  deleteProject: (id: string) => void;
+  renameProject: (id: string, name: string) => void;
 
   // Actions — Files
   setFileContent: (name: string, content: string) => void;
@@ -92,10 +107,27 @@ interface EditorStore {
   setIsAiLoading: (v: boolean) => void;
 }
 
+/** Sync the current working files back into the projects array */
+function syncActiveProject(
+  projects: Project[],
+  activeProjectId: string | null,
+  files: FileMap,
+  mainFile: string
+): Project[] {
+  if (!activeProjectId) return projects;
+  return projects.map((p) =>
+    p.id === activeProjectId
+      ? { ...p, files, mainFile, updatedAt: Date.now() }
+      : p
+  );
+}
+
 export const useEditorStore = create<EditorStore>()(
   persist(
     (set, get) => ({
       // Initial state
+      projects: [],
+      activeProjectId: null,
       files: { "main.tex": DEFAULT_MAIN_TEX },
       activeFile: "main.tex",
       openFiles: ["main.tex"],
@@ -110,46 +142,130 @@ export const useEditorStore = create<EditorStore>()(
       apiKeys: {},
       isAiLoading: false,
 
-      // File actions
+      // Project actions
+      createProject: (name) => {
+        const now = Date.now();
+        const newProject: Project = {
+          id: generateId(),
+          name,
+          files: { "main.tex": DEFAULT_MAIN_TEX },
+          mainFile: "main.tex",
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((s) => ({
+          projects: [...s.projects, newProject],
+          activeProjectId: newProject.id,
+          files: { ...newProject.files },
+          mainFile: newProject.mainFile,
+          activeFile: "main.tex",
+          openFiles: ["main.tex"],
+          compiledPdf: null,
+          compileLogs: "",
+          compileErrors: [],
+          aiMessages: [],
+        }));
+      },
+
+      openProject: (id) => {
+        const { projects, files, mainFile, activeProjectId } = get();
+        // Save current working copy back before switching
+        const savedProjects = syncActiveProject(projects, activeProjectId, files, mainFile);
+        const project = savedProjects.find((p) => p.id === id);
+        if (!project) return;
+        const firstFile = Object.keys(project.files)[0] ?? null;
+        set({
+          projects: savedProjects,
+          activeProjectId: id,
+          files: { ...project.files },
+          mainFile: project.mainFile,
+          activeFile: project.mainFile ?? firstFile,
+          openFiles: project.mainFile ? [project.mainFile] : firstFile ? [firstFile] : [],
+          compiledPdf: null,
+          compileLogs: "",
+          compileErrors: [],
+          aiMessages: [],
+        });
+      },
+
+      closeProject: () => {
+        const { projects, files, mainFile, activeProjectId } = get();
+        const savedProjects = syncActiveProject(projects, activeProjectId, files, mainFile);
+        set({
+          projects: savedProjects,
+          activeProjectId: null,
+          compiledPdf: null,
+          compileLogs: "",
+          compileErrors: [],
+          aiMessages: [],
+        });
+      },
+
+      deleteProject: (id) => {
+        set((s) => ({
+          projects: s.projects.filter((p) => p.id !== id),
+          // If we deleted the active project, go back to dashboard
+          ...(s.activeProjectId === id ? { activeProjectId: null } : {}),
+        }));
+      },
+
+      renameProject: (id, name) => {
+        set((s) => ({
+          projects: s.projects.map((p) =>
+            p.id === id ? { ...p, name, updatedAt: Date.now() } : p
+          ),
+        }));
+      },
+
+      // File actions — write-through to projects when a project is active
       setFileContent: (name, content) =>
-        set((s) => ({ files: { ...s.files, [name]: content } })),
+        set((s) => {
+          const newFiles = { ...s.files, [name]: content };
+          return {
+            files: newFiles,
+            projects: syncActiveProject(s.projects, s.activeProjectId, newFiles, s.mainFile),
+          };
+        }),
 
       addFile: (name, content = "") => {
-        const { files, openFiles } = get();
+        const { files, openFiles, projects, activeProjectId, mainFile } = get();
         if (files[name] !== undefined) return;
+        const newFiles = { ...files, [name]: content };
         set({
-          files: { ...files, [name]: content },
-          openFiles: openFiles.includes(name)
-            ? openFiles
-            : [...openFiles, name],
+          files: newFiles,
+          openFiles: openFiles.includes(name) ? openFiles : [...openFiles, name],
           activeFile: name,
+          projects: syncActiveProject(projects, activeProjectId, newFiles, mainFile),
         });
       },
 
       deleteFile: (name) => {
-        const { files, openFiles, activeFile, mainFile } = get();
+        const { files, openFiles, activeFile, mainFile, projects, activeProjectId } = get();
         const newFiles = { ...files };
         delete newFiles[name];
         const newOpen = openFiles.filter((f) => f !== name);
-        const newActive =
-          activeFile === name ? (newOpen[0] ?? null) : activeFile;
+        const newActive = activeFile === name ? (newOpen[0] ?? null) : activeFile;
+        const newMain = mainFile === name ? (newOpen[0] ?? "main.tex") : mainFile;
         set({
           files: newFiles,
           openFiles: newOpen,
           activeFile: newActive,
-          mainFile: mainFile === name ? (newOpen[0] ?? "main.tex") : mainFile,
+          mainFile: newMain,
+          projects: syncActiveProject(projects, activeProjectId, newFiles, newMain),
         });
       },
 
       renameFile: (oldName, newName) => {
-        const { files, openFiles, activeFile, mainFile } = get();
+        const { files, openFiles, activeFile, mainFile, projects, activeProjectId } = get();
         const newFiles = { ...files, [newName]: files[oldName] };
         delete newFiles[oldName];
+        const newMain = mainFile === oldName ? newName : mainFile;
         set({
           files: newFiles,
           openFiles: openFiles.map((f) => (f === oldName ? newName : f)),
           activeFile: activeFile === oldName ? newName : activeFile,
-          mainFile: mainFile === oldName ? newName : mainFile,
+          mainFile: newMain,
+          projects: syncActiveProject(projects, activeProjectId, newFiles, newMain),
         });
       },
 
@@ -171,7 +287,11 @@ export const useEditorStore = create<EditorStore>()(
         set({ openFiles: newOpen, activeFile: newActive });
       },
 
-      setMainFile: (name) => set({ mainFile: name }),
+      setMainFile: (name) =>
+        set((s) => {
+          const projects = syncActiveProject(s.projects, s.activeProjectId, s.files, name);
+          return { mainFile: name, projects };
+        }),
 
       // Compilation actions
       setCompiledPdf: (pdf) => set({ compiledPdf: pdf }),
@@ -187,7 +307,6 @@ export const useEditorStore = create<EditorStore>()(
         const needle = text.trim().replace(/\s+/g, " ");
         if (needle.length < 3) return null;
 
-        // Search main file first, then other .tex files
         const orderedFiles = [
           mainFile,
           ...Object.keys(files).filter(
@@ -205,7 +324,6 @@ export const useEditorStore = create<EditorStore>()(
               return { file: filename, line: i + 1 };
             }
           }
-          // Partial match: try matching any 5+ char contiguous substring
           if (needle.length >= 8) {
             const partial = needle.slice(0, Math.floor(needle.length * 0.6));
             for (let i = 0; i < lines.length; i++) {
@@ -241,11 +359,28 @@ export const useEditorStore = create<EditorStore>()(
     {
       name: "latex-ai-store",
       partialize: (s) => ({
+        projects: s.projects,
         files: s.files,
         mainFile: s.mainFile,
         apiKeys: s.apiKeys,
         selectedModel: s.selectedModel,
       }),
+      // Migration: if upgrading from old single-project format, wrap existing files into a project
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        if (state.projects.length === 0 && Object.keys(state.files).length > 0) {
+          const now = Date.now();
+          const migratedProject: Project = {
+            id: generateId(),
+            name: "My Project",
+            files: state.files,
+            mainFile: state.mainFile,
+            createdAt: now,
+            updatedAt: now,
+          };
+          state.projects = [migratedProject];
+        }
+      },
     }
   )
 );

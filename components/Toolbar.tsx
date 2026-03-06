@@ -12,6 +12,7 @@ import {
   XCircle,
   Eye,
   EyeOff,
+  ChevronLeft,
 } from "lucide-react";
 
 interface ToolbarProps {
@@ -34,7 +35,12 @@ export function Toolbar({ showPdf, onTogglePdf }: ToolbarProps) {
     setCompiledPdf,
     setCompileLogs,
     setCompileErrors,
+    projects,
+    activeProjectId,
+    closeProject,
   } = useEditorStore();
+
+  const activeProject = projects.find((p) => p.id === activeProjectId);
 
   const [showSettings, setShowSettings] = useState(false);
   const [anthropicKey, setAnthropicKey] = useState(apiKeys.anthropic ?? "");
@@ -127,13 +133,22 @@ export function Toolbar({ showPdf, onTogglePdf }: ToolbarProps) {
   return (
     <>
       <header className="flex items-center justify-between px-4 py-2 bg-[#0a0a0a] border-b border-[#1a1a1a] shrink-0 h-[48px]">
-        {/* Left: Logo */}
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-[#fbbf24] rounded-lg flex items-center justify-center">
+        {/* Left: Logo + back button + project name */}
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-6 h-6 bg-[#fbbf24] rounded-lg flex items-center justify-center shrink-0">
             <span className="text-[10px] font-bold text-black">Lx</span>
           </div>
-          <span className="text-sm font-semibold text-white">
-            LaTeX AI
+          <button
+            onClick={closeProject}
+            className="flex items-center gap-1 text-[#555] hover:text-white transition-colors text-xs shrink-0"
+            title="Back to dashboard"
+          >
+            <ChevronLeft size={13} />
+            <span className="hidden sm:inline">Projects</span>
+          </button>
+          <span className="text-[#333] text-xs shrink-0">/</span>
+          <span className="text-sm font-semibold text-white truncate max-w-[140px]">
+            {activeProject?.name ?? "Untitled"}
           </span>
         </div>
 

@@ -3,6 +3,15 @@ export interface FileEntry {
   content: string;
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  files: FileMap;
+  mainFile: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export type FileMap = Record<string, string>;
 
 export interface Message {

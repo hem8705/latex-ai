@@ -4,6 +4,8 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { FileNavigator } from "@/components/FileNavigator";
 import { Toolbar } from "@/components/Toolbar";
+import { Dashboard } from "@/components/Dashboard";
+import { useEditorStore } from "@/lib/store";
 
 // Dynamically import components that use browser APIs
 const Editor = dynamic(
@@ -26,6 +28,17 @@ const MIN_PANEL_WIDTH = 120;
 const MIN_EDITOR_WIDTH = 200;
 
 export default function Home() {
+  const { activeProjectId } = useEditorStore();
+
+  // Show dashboard when no project is open
+  if (!activeProjectId) {
+    return <Dashboard />;
+  }
+
+  return <IDE />;
+}
+
+function IDE() {
   const [showPdf, setShowPdf] = useState(true);
   const [navWidth, setNavWidth] = useState(200);
   const [aiWidth, setAiWidth] = useState(320);

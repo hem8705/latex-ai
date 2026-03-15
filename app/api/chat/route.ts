@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import type { AIModel } from "@/types";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 const SYSTEM_PROMPT = `You are an expert LaTeX assistant integrated into a LaTeX editor (similar to Cursor for code).
 
@@ -24,14 +24,30 @@ When explaining errors:
 
 Be concise, technical, and accurate.`;
 
+const PLAN_MODE_SYSTEM_PROMPT = `You are an expert LaTeX planning assistant. When asked to create a plan, structure your response as a markdown checklist.
+
+Format your plans like this:
+## Plan: [Title]
+
+- [ ] Task 1
+  - [ ] Subtask 1.1
+  - [ ] Subtask 1.2
+- [ ] Task 2
+- [ ] Task 3
+
+Be thorough but concise. Break complex tasks into manageable steps.`;
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { messages, context, model, apiKey } = body as {
+    const { messages, context, model, apiKey, enableThinking, thinkingBudget, planMode } = body as {
       messages: Array<{ role: string; content: string }>;
       context: string;
       model: AIModel;
       apiKey: string;
+      enableThinking?: boolean;
+      thinkingBudget?: number;
+      planMode?: boolean;
     };
 
     if (!apiKey) {
@@ -60,6 +76,7 @@ export async function POST(req: NextRequest) {
         : userMessages;
 
     const encoder = new TextEncoder();
+    const systemPrompt = planMode ? PLAN_MODE_SYSTEM_PROMPT : SYSTEM_PROMPT;
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -69,14 +86,18 @@ export async function POST(req: NextRequest) {
               controller,
               encoder,
               messagesWithContext,
-              apiKey
+              apiKey,
+              systemPrompt,
+              enableThinking,
+              thinkingBudget
             );
           } else {
             await streamOpenAI(
               controller,
               encoder,
               messagesWithContext,
-              apiKey
+              apiKey,
+              systemPrompt
             );
           }
           controller.close();
@@ -110,28 +131,62 @@ async function streamAnthropic(
   controller: ReadableStreamDefaultController,
   encoder: TextEncoder,
   messages: Array<{ role: "user" | "assistant"; content: string }>,
-  apiKey: string
+  apiKey: string,
+  systemPrompt: string,
+  enableThinking?: boolean,
+  thinkingBudget?: number
 ) {
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
   const client = new Anthropic({ apiKey });
 
-  const stream = await client.messages.stream({
-    model: "claude-opus-4-5",
-    max_tokens: 4096,
-    system: SYSTEM_PROMPT,
-    messages,
-  });
+  if (enableThinking) {
+    const stream = await client.messages.create({
+      model: "claude-opus-4-5-20250514",
+      max_tokens: 16000,
+      thinking: {
+        type: "enabled",
+        budget_tokens: thinkingBudget || 10000,
+      },
+      messages,
+      stream: true,
+    });
 
-  for await (const chunk of stream) {
-    if (
-      chunk.type === "content_block_delta" &&
-      chunk.delta.type === "text_delta"
-    ) {
-      controller.enqueue(
-        encoder.encode(
-          `data: ${JSON.stringify({ text: chunk.delta.text })}\n\n`
-        )
-      );
+    for await (const event of stream) {
+      if (event.type === "content_block_delta") {
+        if (event.delta.type === "thinking_delta") {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ thinking: event.delta.thinking })}\n\n`
+            )
+          );
+        } else if (event.delta.type === "text_delta") {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ text: event.delta.text })}\n\n`
+            )
+          );
+        }
+      }
+    }
+  } else {
+    const stream = await client.messages.stream({
+      model: "claude-opus-4-5-20250514",
+      max_tokens: 4096,
+      system: systemPrompt,
+      messages,
+    });
+
+    for await (const chunk of stream) {
+      if (
+        chunk.type === "content_block_delta" &&
+        chunk.delta.type === "text_delta"
+      ) {
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({ text: chunk.delta.text })}\n\n`
+          )
+        );
+      }
     }
   }
 }
@@ -140,7 +195,8 @@ async function streamOpenAI(
   controller: ReadableStreamDefaultController,
   encoder: TextEncoder,
   messages: Array<{ role: "user" | "assistant"; content: string }>,
-  apiKey: string
+  apiKey: string,
+  systemPrompt: string
 ) {
   const OpenAI = (await import("openai")).default;
   const client = new OpenAI({ apiKey });
@@ -148,7 +204,7 @@ async function streamOpenAI(
   const stream = await client.chat.completions.create({
     model: "gpt-4o",
     stream: true,
-    messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+    messages: [{ role: "system", content: systemPrompt }, ...messages],
   });
 
   for await (const chunk of stream) {

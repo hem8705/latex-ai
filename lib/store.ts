@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { FileMap, Message, ApiKeys, AIModel, Project } from "@/types";
+import type { FileMap, Message, ApiKeys, AIModel, Project, Plan, PlanItem, Attachment } from "@/types";
 
 export const DEFAULT_MAIN_TEX = `\\documentclass[12pt]{article}
 
@@ -70,6 +70,13 @@ interface EditorStore {
   selectedModel: AIModel;
   apiKeys: ApiKeys;
   isAiLoading: boolean;
+  enableThinking: boolean;
+  thinkingBudget: number;
+  pendingAttachments: Attachment[];
+
+  // Plan Mode
+  planMode: boolean;
+  activePlan: Plan | null;
 
   // Actions — Projects
   createProject: (name: string) => void;
@@ -100,11 +107,23 @@ interface EditorStore {
 
   // Actions — AI
   addAiMessage: (message: Message) => void;
-  updateLastAiMessage: (content: string) => void;
+  updateLastAiMessage: (content: string, thinking?: string) => void;
   clearAiMessages: () => void;
   setSelectedModel: (model: AIModel) => void;
   setApiKeys: (keys: Partial<ApiKeys>) => void;
   setIsAiLoading: (v: boolean) => void;
+  setEnableThinking: (v: boolean) => void;
+  setThinkingBudget: (budget: number) => void;
+  addPendingAttachment: (attachment: Attachment) => void;
+  removePendingAttachment: (id: string) => void;
+  clearPendingAttachments: () => void;
+
+  // Actions — Plan Mode
+  setPlanMode: (v: boolean) => void;
+  setActivePlan: (plan: Plan | null) => void;
+  updatePlanItem: (itemId: string, completed: boolean) => void;
+  addPlanItem: (text: string, parentId?: string) => void;
+  removePlanItem: (itemId: string) => void;
 }
 
 /** Sync the current working files back into the projects array */
@@ -141,6 +160,11 @@ export const useEditorStore = create<EditorStore>()(
       selectedModel: "claude",
       apiKeys: {},
       isAiLoading: false,
+      enableThinking: false,
+      thinkingBudget: 10000,
+      pendingAttachments: [],
+      planMode: false,
+      activePlan: null,
 
       // Project actions
       createProject: (name) => {
@@ -341,11 +365,15 @@ export const useEditorStore = create<EditorStore>()(
       addAiMessage: (message) =>
         set((s) => ({ aiMessages: [...s.aiMessages, message] })),
 
-      updateLastAiMessage: (content) =>
+      updateLastAiMessage: (content, thinking) =>
         set((s) => {
           const msgs = [...s.aiMessages];
           if (msgs.length > 0 && msgs[msgs.length - 1].role === "assistant") {
-            msgs[msgs.length - 1] = { ...msgs[msgs.length - 1], content };
+            msgs[msgs.length - 1] = { 
+              ...msgs[msgs.length - 1], 
+              content,
+              ...(thinking !== undefined ? { thinking } : {})
+            };
           }
           return { aiMessages: msgs };
         }),
@@ -355,6 +383,104 @@ export const useEditorStore = create<EditorStore>()(
       setApiKeys: (keys) =>
         set((s) => ({ apiKeys: { ...s.apiKeys, ...keys } })),
       setIsAiLoading: (v) => set({ isAiLoading: v }),
+      setEnableThinking: (v) => set({ enableThinking: v }),
+      setThinkingBudget: (budget) => set({ thinkingBudget: budget }),
+      addPendingAttachment: (attachment) =>
+        set((s) => ({ pendingAttachments: [...s.pendingAttachments, attachment] })),
+      removePendingAttachment: (id) =>
+        set((s) => ({ pendingAttachments: s.pendingAttachments.filter((a) => a.id !== id) })),
+      clearPendingAttachments: () => set({ pendingAttachments: [] }),
+
+      // Plan mode actions
+      setPlanMode: (v) => set({ planMode: v }),
+      setActivePlan: (plan) => set({ activePlan: plan }),
+      updatePlanItem: (itemId, completed) =>
+        set((s) => {
+          if (!s.activePlan) return s;
+          const updateItem = (items: PlanItem[]): PlanItem[] =>
+            items.map((item) => {
+              if (item.id === itemId) {
+                return { ...item, completed };
+              }
+              if (item.children) {
+                return { ...item, children: updateItem(item.children) };
+              }
+              return item;
+            });
+          return {
+            activePlan: {
+              ...s.activePlan,
+              items: updateItem(s.activePlan.items),
+              updatedAt: Date.now(),
+            },
+          };
+        }),
+      addPlanItem: (text, parentId) =>
+        set((s) => {
+          const newItem: PlanItem = {
+            id: generateId(),
+            text,
+            completed: false,
+          };
+          if (!s.activePlan) {
+            return {
+              activePlan: {
+                id: generateId(),
+                title: "Plan",
+                items: [newItem],
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+              },
+            };
+          }
+          if (!parentId) {
+            return {
+              activePlan: {
+                ...s.activePlan,
+                items: [...s.activePlan.items, newItem],
+                updatedAt: Date.now(),
+              },
+            };
+          }
+          const addToParent = (items: PlanItem[]): PlanItem[] =>
+            items.map((item) => {
+              if (item.id === parentId) {
+                return {
+                  ...item,
+                  children: [...(item.children || []), newItem],
+                };
+              }
+              if (item.children) {
+                return { ...item, children: addToParent(item.children) };
+              }
+              return item;
+            });
+          return {
+            activePlan: {
+              ...s.activePlan,
+              items: addToParent(s.activePlan.items),
+              updatedAt: Date.now(),
+            },
+          };
+        }),
+      removePlanItem: (itemId) =>
+        set((s) => {
+          if (!s.activePlan) return s;
+          const removeItem = (items: PlanItem[]): PlanItem[] =>
+            items
+              .filter((item) => item.id !== itemId)
+              .map((item) => ({
+                ...item,
+                children: item.children ? removeItem(item.children) : undefined,
+              }));
+          return {
+            activePlan: {
+              ...s.activePlan,
+              items: removeItem(s.activePlan.items),
+              updatedAt: Date.now(),
+            },
+          };
+        }),
     }),
     {
       name: "latex-ai-store",
